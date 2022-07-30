@@ -6,6 +6,7 @@ interface Cycle {
   minutesAmount: number
   startDate: Date
   interruptedDate?: Date
+  finishedDate?: Date
 }
 
 interface CreateNewCycleData {
@@ -47,7 +48,7 @@ export function CyclesContextProvider({
     setCycles((state) =>
       state.map((cycle) => {
         if (cycle.id === activeCycleId)
-          return { ...cycle, interruptedDate: new Date() }
+          return { ...cycle, finishedDate: new Date() }
         else return cycle
       }),
     )
@@ -64,8 +65,6 @@ export function CyclesContextProvider({
     setCycles((state) => [...state, newCycle])
     setActiveCycleId(newCycle.id)
     setAmountSecondsPassed(0)
-
-    // reset()
   }
 
   function interruptCurrentCycle() {
