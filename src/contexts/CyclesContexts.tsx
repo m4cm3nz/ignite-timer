@@ -1,6 +1,15 @@
-import { createContext, ReactNode, useReducer, useState } from 'react'
+import { differenceInSeconds } from 'date-fns'
+import {
+  createContext,
+  ReactNode,
+  useEffect,
+  useReducer,
+  useState,
+} from 'react'
+
 import {
   addNewCycleAction,
+  interruptCurrentCycleAction,
   markCurrentCycleAsFinishedAction,
 } from '../reducers/cycles/actions'
 import { cyclesReducer } from '../reducers/cycles/reducer'
@@ -39,24 +48,36 @@ export const CyclesContext = createContext({} as CyclesContextType)
 export function CyclesContextProvider({
   children,
 }: CyclesContextProviderProps) {
-  const [cyclesState, dispach] = useReducer(cyclesReducer, {
+  const noCyclesState = {
     cycles: [],
     activeCycleId: null,
-  })
+  }
 
-  const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
+  const [cyclesState, dispach] = useReducer(
+    cyclesReducer,
+    noCyclesState,
+    () => {
+      const storedStateAsJson = localStorage.getItem(
+        '@ignite-timer:cycles-state',
+      )
+      return storedStateAsJson ? JSON.parse(storedStateAsJson) : noCyclesState
+    },
+  )
+
+  useEffect(() => {
+    const stateJSON = JSON.stringify(cyclesState)
+    localStorage.setItem('@ignite-timer:cycles-state', stateJSON)
+  }, [cyclesState])
 
   const { cycles, activeCycleId } = cyclesState
 
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
 
-  function setSecondsElapsed(seconds: number) {
-    setAmountSecondsPassed(seconds)
-  }
-
-  function markCurrentCycleAsFinished() {
-    dispach(markCurrentCycleAsFinishedAction())
-  }
+  const [amountSecondsPassed, setAmountSecondsPassed] = useState(() => {
+    return activeCycle
+      ? differenceInSeconds(new Date(), new Date(activeCycle.startDate))
+      : 0
+  })
 
   function createNewCycle(data: CreateNewCycleData) {
     const newCycle: Cycle = {
@@ -72,7 +93,15 @@ export function CyclesContextProvider({
   }
 
   function interruptCurrentCycle() {
-    dispach(interruptCurrentCycle())
+    dispach(interruptCurrentCycleAction())
+  }
+
+  function markCurrentCycleAsFinished() {
+    dispach(markCurrentCycleAsFinishedAction())
+  }
+
+  function setSecondsElapsed(seconds: number) {
+    setAmountSecondsPassed(seconds)
   }
 
   return (
